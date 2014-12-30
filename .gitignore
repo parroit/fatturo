@@ -6,3 +6,4 @@ lib/built-templates
 config.*
 .DS_Store
 reactified
+fatturo-db
