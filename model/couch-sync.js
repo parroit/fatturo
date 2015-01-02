@@ -7,6 +7,7 @@ var winston = require('winston');
 var auth = require('pouch-auth');
 PouchDB.plugin(auth);
 var nconf = require('nconf');
+var coerce = require('../lib/schema-coerce');
 
 module.exports = {
     couchSync: function couchSync() {
@@ -26,20 +27,20 @@ module.exports = {
 
         winston.info('Login to remote db');
         remote.login(remoteUser, remotePassword)
-            
-            .then(function(loggedinRemote) {
-                winston.info('Loggedin as ' + loggedinRemote.user.name);
-                var sync = db.sync(loggedinRemote);
-                sync.on('error', function(err) {
-                    winston.error('Cannot sync remote db:\n\n' + err);
-                });
 
-                sync.on('complete', function(info) {
-                    winston.info('Remote db synchronized successfully.');
-                    winston.info(cliff.inspect(info));
-                });
+        .then(function(loggedinRemote) {
+            winston.info('Loggedin as ' + loggedinRemote.user.name);
+            var sync = db.sync(loggedinRemote);
+            sync.on('error', function(err) {
+                winston.error('Cannot sync remote db:\n\n' + err);
+            });
 
-            })
+            sync.on('complete', function(info) {
+                winston.info('Remote db synchronized successfully.');
+                winston.info(cliff.inspect(info));
+            });
+
+        })
 
         .catch(function(err) {
             winston.error('Cannot login to remote db:\n\n' + err);
@@ -54,28 +55,59 @@ module.exports = {
         var db = new PouchDB('fatturo-db');
         var year = nconf.get('y');
 
-        db.allDocs({include_docs: true})
+        db.allDocs({
+                include_docs: true
+            })
             .then(function(result) {
-                
+
 
                 result.rows.filter(function(d) {
                         return d.doc.type === 'fattura' && (!year || d.doc.anno == year);
                     })
                     .map(function(d) {
-                        return d.doc;
+                        return fattura.from(d.doc);
                     })
                     .forEach(function(d) {
-                        d.righe.forEach(function(r){
-                            r.prezzoCadauno = Number(r.prezzoCadauno);
-                            r.quantita = Number(r.quantita);
-                            r.numeroRiga = Number(r.numeroRiga);
-                        });
-                        d.articoloIva.percentuale = Number(d.articoloIva.percentuale);
-                        d.pagamento.giorni = Number(d.pagamento.giorni);
-                        d.pagamento.fineMese = Boolean(d.pagamento.fineMese);
-                        d.cliente.cliente = Boolean(d.cliente.cliente);
-                        d.cliente.fornitore = Boolean(d.cliente.fornitore);
-                        d.applicaRivalsaInps = Boolean(d.applicaRivalsaInps);
+
+
+                        winston.info(cliff.inspect(d));
+
+                    });
+            })
+            .catch(function(err) {
+                winston.error('Cannot list bills:\n\n' + err.stack);
+            });
+
+    },
+
+    random: function list() {
+        var fattura = require('./fattura');
+
+
+        winston.info(cliff.inspect(fattura.random()));
+
+    },
+
+
+    correct: function correct() {
+        var fattura = require('./fattura');
+
+        var db = new PouchDB('fatturo-db');
+        var year = nconf.get('y');
+
+        db.allDocs({
+                include_docs: true
+            })
+            .then(function(result) {
+
+
+                result.rows.filter(function(d) {
+                        return d.doc.type === 'fattura' && (!year || d.doc.anno == year);
+                    })
+                    .map(function(d) {
+                        return fattura.from(coerce(d.doc, fattura.content));
+                    })
+                    .forEach(function(d) {
 
                         var errors = fattura.validate(d);
                         if (errors.length) {
@@ -83,14 +115,21 @@ module.exports = {
                             return winston.info(cliff.inspect(d));
                         }
 
-                        winston.info(cliff.inspect(fattura.from(d)));
+                        db.put(d)
+                            .then(function() {
+                                winston.info(d.formattedCode + ' saved');
+                            })
+                            .catch(function(err) {
+                                winston.error('Cannot save bill:\n\n' + err.stack);
+                            });
+
 
                     });
             })
             .catch(function(err) {
-                winston.error('Cannot login to remote db:\n\n' + err);
+                winston.error('Cannot list bills:\n\n' + err.stack);
             });
-            
+
     },
 
     init: function init() {

@@ -44,6 +44,17 @@ var expectedSchema = {
     $schema: 'http://json-schema.org/draft-03/schema',
     id: 'http://github.com/parroit/schema/cliente',
     properties: {
+        _id: {
+            id: '/_id',
+            required: false,
+            type: 'string',
+        },
+        _rev: {
+            id: '/_rev',
+            required: false,
+            type: 'string',
+        },
+
         codice: {
             default: '23/2014',
             id: '/codice',
@@ -74,6 +85,13 @@ var expectedSchema = {
             required: false,
             type: 'string'
         },
+        type: {
+            default: 'cliente',
+            id: '/type',
+            required: false,
+            type: 'string'
+        },
+
         iva: {
             default: 22,
             exclusiveMaximum: false,
@@ -104,7 +122,7 @@ describe('schema', function() {
         result.should.be.deep.equal(expectedSchema);
     });
 
-     it('return json schema with object properties', function() {
+    it('return json schema with object properties', function() {
         var result = cliente2.schema();
         //console.dir(result)
         result.should.be.deep.equal(expectedSchema);
@@ -157,7 +175,8 @@ describe('schema', function() {
         var result = cliente.build();
         result.should.be.deep.equal({
             codice: '23/2014',
-            iva: 22
+            iva: 22,
+            type: 'cliente'
         });
     });
 });

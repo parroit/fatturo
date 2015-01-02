@@ -78,6 +78,14 @@ function runProgram(er, data) {
         .description('List all local bills.')
         .action(actions.list);
 
+    program.command('correct')
+        .description('Correct check, and save all local bills.')
+        .action(actions.correct);
+
+    program.command('random')
+        .description('create a bill instance that contains random values.')
+        .action(actions.random);
+
 
     
     nconf.env().argv();
