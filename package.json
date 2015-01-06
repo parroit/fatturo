@@ -33,6 +33,7 @@
     "commander": "^2.6.0",
     "couch-db": "~1.1.3",
     "immstruct": "^1.2.1",
+    "immutable": "^3.4.1",
     "json-schema-defaults": "0.0.2",
     "json-schema-filter": "^0.1.4",
     "json-schema-random-instance": "~0.1.1",
